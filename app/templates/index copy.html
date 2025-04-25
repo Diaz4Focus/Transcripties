@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transcriptie WebGUI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      color: #343a40;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      color: #495057;
+    }
+    input[type="file"],
+    select,
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .spinner {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
+      height: 60px;
+    }
+    .spinner.active {
+      visibility: visible;
+    }
+    .loader {
+    width: 40px;
+    aspect-ratio: 1/1;
+    border: 4px solid rgba(0, 123, 255, 0.2);
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 0.5rem;
+    box-sizing: border-box; /* <-- essentieel om het ovaal-effect te voorkomen */
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .status {
+      margin-top: 0.5rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #495057;
+    }
+    .message {
+      margin-top: 1.5rem;
+      background: #e9f7ef;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      color: #155724;
+    }
+    .message a {
+      display: block;
+      margin-top: 0.5rem;
+      color: #007bff;
+      text-decoration: none;
+    }
+    .message a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Transcriptie WebGUI</h1>
+    <form id="transcribe-form" enctype="multipart/form-data">
+      <label for="audio_file">Audio bestand (.m4a):</label>
+      <input type="file" name="audio_file" accept="audio/mp4, audio/x-m4a" required />
+
+      <label for="model_size">Modelgrootte:</label>
+      <select name="model_size">
+        <option value="tiny">Tiny</option>
+        <option value="small">Small</option>
+        <option value="medium" selected>Medium</option>
+        <option value="large">Large</option>
+      </select>
+
+      <label for="language">Taal:</label>
+      <select name="language">
+        <option value="auto" selected>Automatisch detecteren</option>
+        <option value="nl">Nederlands</option>
+        <option value="en">Engels</option>
+      </select>
+
+      <button type="submit">Start transcriptie</button>
+
+      <div class="spinner" id="spinner">
+        <div class="loader"></div>
+        <div class="status" id="timer">Bezig met verwerken...</div>
+      </div>
+    </form>
+
+    <div class="message" id="result-message" style="display: none;">
+      {% if message %}
+        <p>{{ message }}</p>
+        <a href="/output/raw/{{ filename }}.txt" target="_blank">📝 Ruwe transcriptie</a>
+        <a href="/output/corrected/{{ filename }}.txt" target="_blank">✅ Correcte versie</a>
+        <a href="/output/summary/{{ filename }}.txt" target="_blank">📄 Samenvatting</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    let interval;
+    let timeLeft = 90;
+
+    document.getElementById("transcribe-form").addEventListener("submit", async function(event) {
+      event.preventDefault();
+      const form = event.target;
+      const spinner = document.getElementById("spinner");
+      const timerElement = document.getElementById("timer");
+      const resultDiv = document.getElementById("result-message");
+
+      spinner.classList.add("active");
+      resultDiv.style.display = "none";
+      resultDiv.innerHTML = "";
+
+      timeLeft = 90;
+      clearInterval(interval);
+      interval = setInterval(() => {
+        if (timeLeft > 0) {
+          const min = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+          const sec = String(timeLeft % 60).padStart(2, '0');
+          timerElement.innerText = `Geschatte resterende tijd: ${min}:${sec}`;
+          timeLeft--;
+        } else {
+          timerElement.innerText = "Nog even geduld... bijna klaar.";
+          clearInterval(interval);
+        }
+      }, 1000);
+
+      const formData = new FormData(form);
+      const response = await fetch("/", {
+        method: "POST",
+        body: formData
+      });
+
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const newMessage = doc.getElementById("result-message");
+      if (newMessage) {
+        resultDiv.innerHTML = newMessage.innerHTML;
+        resultDiv.style.display = "block";
+      }
+
+      spinner.classList.remove("active");
+      clearInterval(interval);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Transcriptie bezig...</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            text-align: center;
+            margin-top: 100px;
+            color: #444;
+        }
+
+        .spinner {
+            margin: 40px auto;
+            border: 10px solid #f3f3f3;
+            border-top: 10px solid #0057b8;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        p {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <h2>Transcriptie gestart</h2>
+    <div class="spinner"></div>
+    <p>We zijn je audio aan het verwerken. Dit kan enkele minuten duren.<br>Laat dit venster open of kom later terug.</p>
+</body>
+</html>

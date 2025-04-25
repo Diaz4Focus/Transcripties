@@ -1,0 +1,18 @@
+services:
+  whisper-webui:
+    build: .
+    ports:
+      - "5009:5000"
+    volumes:
+      - ./app/uploads:/app/app/uploads
+      - ./app/output:/app/app/output
+      - ./app/templates:/app/app/templates
+      - ./app/static:/app/app/static
+      - ./app/utils.py:/app/app/utils.py
+      - ./app/main.py:/app/app/main.py
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=app/main.py
+      - FLASK_ENV=development
+    restart: unless-stopped
+    command: flask run --host=0.0.0.0 --port=5000

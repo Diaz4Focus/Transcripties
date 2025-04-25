@@ -1,0 +1,5 @@
+flask
+gradio
+faster-whisper
+language-tool-python
+nltk
